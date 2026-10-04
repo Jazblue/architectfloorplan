@@ -63,6 +63,7 @@ print("=" * 68)
 print("\n[1] required files")
 for f in ("index.html", "style.css", "README.md",
           "images/two_bed_house_floorplan_final.png",
+          "images/first-design-floorplan.png",
           "images/architecture-specification-problem.png",
           "images/workflow-diagram.png"):
     p = os.path.join(ROOT, f)
@@ -110,6 +111,10 @@ for sec, needle in [
         ("chatgpt role", "The role of ChatGPT"),
         ("main lesson", "AI agents are much more reliable when the human defines the important"),
         ("spec lesson", "constrained by the human (or ChatGPT) before Hermes was asked"),
+        ("earlier design heading", "An earlier design, and why it was replaced"),
+        ("earlier image", "images/first-design-floorplan.png"),
+        ("earlier defect: label", "15.8"),
+        ("earlier defect: label truth", "16.83"),
 ]:
     check(needle in html, "section present: %s" % sec)
 
