@@ -1,0 +1,8 @@
+# Blender scratch
+*.blend1
+__pycache__/
+*.pyc
+
+# OS noise
+.DS_Store
+Thumbs.db

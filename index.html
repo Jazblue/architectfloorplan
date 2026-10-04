@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architect Floorplan — Hermes + Blender Experiment</title>
+<meta name="description" content="An experiment in using an AI agent to turn a structured house specification into a Blender-generated 2D floor plan, documenting the problems and the final working result.">
+<meta name="color-scheme" content="dark light">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">architectfloorplan</span>
+    <a href="#story">Story</a>
+    <a href="#struggled">Where Hermes struggled</a>
+    <a href="#blender">Blender problem</a>
+    <a href="#result">Result</a>
+    <a href="#workflow">Workflow</a>
+    <a href="#effort">Effort</a>
+    <a href="#lessons">Lessons</a>
+    <a href="#stack">Stack</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker">Proof of concept &middot; not an architectural design</span>
+    <h1>Architect Floorplan</h1>
+    <p class="sub">Hermes + Blender: from specification to visual floor plan</p>
+    <p class="lede">
+      An experiment in giving an AI agent a structured architectural specification,
+      generating Blender geometry, and learning where human constraints and visual
+      verification are still essential.
+    </p>
+    <ul class="facts">
+      <li><b>5.50 &times; 10.00 m</b> footprint</li>
+      <li>Two storeys</li>
+      <li>Two bedrooms</li>
+      <li>Mid-terrace</li>
+      <li>Blender 5.2.2 LTS</li>
+      <li>Workbench render</li>
+    </ul>
+  </div>
+</header>
+
+<main>
+
+<!-- ============================================================ STORY -->
+<section id="story">
+  <div class="wrap">
+    <h2>The original idea</h2>
+    <p class="lead">
+      A deliberately small end-to-end pipeline, to test whether an agent could carry a
+      structured specification through to a finished visual artefact.
+    </p>
+
+    <ol class="steps">
+      <li>Hermes designs / specifies the house</li>
+      <li>Hermes calculates dimensions and coordinates</li>
+      <li>Hermes writes the Blender Python</li>
+      <li>Blender generates the floor plan</li>
+      <li>Hermes visually checks the result</li>
+    </ol>
+
+    <p>
+      The pipeline is simple to state. In practice, asking Hermes to
+      <em>invent</em> a sensible architectural layout from nothing turned out to be the
+      weak point. Several proposed specifications were poor, and the failures were
+      architectural rather than technical.
+    </p>
+
+    <div class="cards">
+      <div class="card bad">
+        <h3>Bedrooms far too small</h3>
+        <p>Rooms that satisfied the area target but were unusable as bedrooms. One
+        proposal produced a second bedroom only 1.2&nbsp;m deep.</p>
+      </div>
+      <div class="card bad">
+        <h3>Circulation ate the house</h3>
+        <p>Landings and hallways grew until they were larger than the rooms they were
+        meant to serve.</p>
+      </div>
+      <div class="card bad">
+        <h3>Stairs did not physically fit</h3>
+        <p>A 3.60&nbsp;m run drawn into a 2.60&nbsp;m opening, papered over with
+        &ldquo;the remaining stair continues into the landing&rdquo;.</p>
+      </div>
+      <div class="card bad">
+        <h3>Unexplained floor area</h3>
+        <p>Room areas totalled about 29&nbsp;m<sup>2</sup> against a
+        48.96&nbsp;m<sup>2</sup> envelope, with the shortfall described as
+        &ldquo;partitions&rdquo;.</p>
+      </div>
+      <div class="card bad">
+        <h3>Windows in party walls</h3>
+        <p>A bathroom window proposed on the side elevation of a house explicitly
+        described as a mid-terrace.</p>
+      </div>
+      <div class="card bad">
+        <h3>Figures that disagreed</h3>
+        <p>Stated areas did not match the drawn geometry, and stair treads overlapped
+        the WC.</p>
+      </div>
+    </div>
+
+    <p>
+      The agent also kept responding to a rejected proposal by starting another
+      redesign, rather than applying the specific feedback it had been given. That
+      loop was the single biggest time sink in the project.
+    </p>
+
+    <blockquote class="lead-quote">
+      The experiment showed that the architectural specification needed to be
+      constrained by the human (or ChatGPT) before Hermes was asked to generate the
+      Blender geometry.
+    </blockquote>
+  </div>
+</section>
+
+<!-- ====================================================== STRUGGLED -->
+<section id="struggled">
+  <div class="wrap">
+    <h2>Where Hermes struggled</h2>
+    <p class="lead">
+      The problem was not simply Blender. The difficult part was producing a coherent
+      architectural specification in the first place.
+    </p>
+
+    <figure>
+      <img src="images/architecture-specification-problem.png"
+           alt="Flow diagram in five stages: house requirements, a Hermes design attempt, problems found, human or ChatGPT constraining the architecture, and finally Hermes producing coordinates while Blender draws the specification."
+           width="1120" height="1340">
+      <figcaption>The point in the process where the approach had to change.</figcaption>
+    </figure>
+
+    <h3>The method that worked</h3>
+    <ol class="steps">
+      <li><strong>Human / ChatGPT defines a sensible basic layout</strong> &mdash; envelope, room count, room sizes and stair position.</li>
+      <li><strong>Hermes converts it into precise coordinates</strong> &mdash; translation, not design.</li>
+      <li><strong>Blender draws the specification</strong> &mdash; deterministic geometry from those coordinates.</li>
+      <li><strong>Hermes visually verifies the rendered image</strong> &mdash; looking at the picture, not the log.</li>
+      <li><strong>Hermes corrects technical presentation problems</strong> &mdash; without touching the architecture.</li>
+    </ol>
+
+    <p>
+      This is a more useful division of responsibilities for an experiment like this:
+      the human owns the judgement calls, the agent owns the implementation.
+    </p>
+  </div>
+</section>
+
+<!-- ========================================================= BLENDER -->
+<section id="blender">
+  <div class="wrap">
+    <h2>The Blender problem</h2>
+    <p class="lead">The first render that appeared to work did not work at all.</p>
+
+    <div class="card bad">
+      <h3>What happened</h3>
+      <p>
+        The PNG was produced, it contained black and white pixels, and it was reported
+        as successful. It was blank. The verification &mdash; file exists, file is not
+        uniform, file is not empty &mdash; could not tell the difference between a
+        correct render and an empty one.
+      </p>
+    </div>
+
+    <p>
+      Only when the rendered image was actually looked at did the real problem appear.
+      The two floors had been modelled <strong>stacked vertically</strong>, which is the
+      honest way to build a two-storey house. A top-down orthographic camera sees only
+      the top surface of the first-floor slab, so the entire ground floor was hidden
+      underneath it. No change of material, lighting or background could have fixed that.
+    </p>
+
+    <p>
+      The fix was deliberately <strong>not</strong> a redesign. The house was left exactly
+      as specified. Both floor plans were presented side by side at the same Z level for
+      the 2D presentation &mdash; a drawing convention, not an architectural change.
+    </p>
+
+    <blockquote>File validation is not visual validation.</blockquote>
+  </div>
+</section>
+
+<!-- ========================================================== RESULT -->
+<section id="result">
+  <div class="wrap">
+    <h2>Final result</h2>
+    <p class="lead">
+      A readable 2D floor plan generated by <code>generate_floorplan.py</code>, rendered
+      with Blender's Workbench engine using flat object colours on a white background.
+    </p>
+
+    <figure>
+      <img src="images/two_bed_house_floorplan_final.png"
+           alt="Two floor plans side by side. Left is the ground floor with a living room at the front, a hall and staircase through the middle, and a kitchen and dining area at the rear. Right is the first floor with bedroom one at the front, a bathroom and landing in the middle, and bedroom two across the rear. Both plans show external and internal walls, door openings, windows, a staircase with treads, room labels with areas, and dimension lines."
+           width="2400" height="2000">
+      <figcaption>Ground floor on the left, first floor on the right. Front elevation at the bottom.</figcaption>
+    </figure>
+
+    <h3>What the image contains</h3>
+    <ul class="cols">
+      <li>Ground floor &mdash; living room, kitchen/dining, hall, staircase</li>
+      <li>First floor &mdash; bedroom 1, bedroom 2, bathroom, landing, stair void</li>
+      <li>External walls at 200&nbsp;mm and internal partitions at 100&nbsp;mm</li>
+      <li>Door openings and window positions</li>
+      <li>Staircase drawn with treads and a direction arrow</li>
+      <li>Room labels with dimensions and areas</li>
+      <li>Dimension lines for the 5.50&nbsp;m &times; 10.00&nbsp;m envelope</li>
+    </ul>
+
+    <div class="card warn">
+      <h3>Not a construction drawing</h3>
+      <p>
+        This is an illustrative concept. It is <strong>not</strong> architect-certified,
+        has not been checked against Building Regulations, and must not be used for
+        construction. Its purpose is to document what this pipeline can and cannot do.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================================================== WORKFLOW -->
+<section id="workflow">
+  <div class="wrap">
+    <h2>Final workflow</h2>
+    <p class="lead">
+      The sequence that produced a usable result, and where responsibility for each
+      decision sits.
+    </p>
+
+    <figure>
+      <img src="images/workflow-diagram.png"
+           alt="Six-step vertical workflow diagram: specification, coordinates, Blender Python, 2D floor plan, visual inspection, and correction, with a loop-back arrow from correction to visual inspection."
+           width="1180" height="1330">
+      <figcaption>Specification &rarr; coordinates &rarr; Blender &rarr; render &rarr; inspect &rarr; correct.</figcaption>
+    </figure>
+
+    <div class="cards">
+      <div class="card">
+        <h3>1 &middot; Specification</h3>
+        <p>The human side fixes the envelope, room count, room sizes and stair position.
+        Nothing architectural is invented downstream.</p>
+      </div>
+      <div class="card">
+        <h3>2 &middot; Coordinates</h3>
+        <p>Hermes translates the agreed layout into explicit X/Y rectangles for every
+        room, wall and opening.</p>
+      </div>
+      <div class="card">
+        <h3>3 &middot; Blender Python</h3>
+        <p>A script builds the geometry, sets an orthographic camera and configures a
+        flat Workbench render.</p>
+      </div>
+      <div class="card">
+        <h3>4 &middot; 2D floor plan</h3>
+        <p>Both floors render side by side on a white background with dark line work.</p>
+      </div>
+      <div class="card">
+        <h3>5 &middot; Visual inspection</h3>
+        <p>The rendered image is examined directly. A render that exists is not the same
+        as a render that is correct.</p>
+      </div>
+      <div class="card">
+        <h3>6 &middot; Correction</h3>
+        <p>Presentation problems are fixed. The architecture is left alone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================== EFFORT -->
+<section id="effort">
+  <div class="wrap">
+    <h2>How long did it take?</h2>
+    <p class="lead">Considerably longer than this small visual result suggests.</p>
+    <p>
+      This small proof-of-concept took considerably longer than expected, because most of
+      the iteration was spent getting the specification right and diagnosing whether the
+      Blender output was actually correct &mdash; not in writing Blender code.
+    </p>
+    <p>
+      Writing the generator script turned out to be the easy part. The effort went into
+      making three kinds of decision at once: <strong>architectural</strong> judgement,
+      <strong>arithmetical</strong> consistency with the envelope, and
+      <strong>verification</strong> that the rendered image was right. The middle one was
+      the most error-prone and the least visible until the image was inspected.
+    </p>
+    <p>
+      Two failures were only caught because something was actually checked: a script
+      that would not run, and an image that was blank. Neither would have been found by
+      reading the code or the log alone.
+    </p>
+  </div>
+</section>
+
+<!-- ========================================================= LESSONS -->
+<section id="lessons">
+  <div class="wrap">
+    <h2>Final lessons</h2>
+
+    <div class="two-col">
+      <div class="card good">
+        <h3>What worked</h3>
+        <ul>
+          <li>Hermes can generate and execute Blender Python</li>
+          <li>Hermes can create structured geometry from coordinates</li>
+          <li>Blender can produce a clean 2D presentation</li>
+          <li>Hermes can visually inspect its own generated image</li>
+          <li>Hermes can diagnose a real presentation error and correct it</li>
+        </ul>
+      </div>
+      <div class="card bad">
+        <h3>What didn't work</h3>
+        <ul>
+          <li>Asking Hermes to freely invent the architecture</li>
+          <li>Trusting textual claims that the render was correct</li>
+          <li>Assuming a non-empty PNG is a useful image</li>
+          <li>Stacking both floors and expecting one top-down view to show both</li>
+        </ul>
+      </div>
+    </div>
+
+    <blockquote class="lead-quote">
+      AI agents are much more reliable when the human defines the important constraints
+      and the agent handles the implementation.
+    </blockquote>
+
+    <h3>The role of ChatGPT</h3>
+    <p>
+      ChatGPT was used alongside Hermes during the experiment. It did not design the
+      architectural plan &mdash; it was used to:
+    </p>
+    <ul class="cols">
+      <li>Challenge poor floor-plan specifications instead of accepting them</li>
+      <li>Identify unrealistic room proportions and unusable bedroom shapes</li>
+      <li>Tighten the requirements until they were actually satisfiable</li>
+      <li>Recognise when Hermes was overcomplicating the task or restarting a redesign</li>
+      <li>Help restructure the workflow so the agent had a bounded job</li>
+    </ul>
+    <p>
+      The experiment became successful once the architectural constraints were defined
+      clearly enough for Hermes to execute. That is the point &mdash; not that ChatGPT
+      produced a professional architectural plan.
+    </p>
+  </div>
+</section>
+
+<!-- ============================================================ STACK -->
+<section id="stack">
+  <div class="wrap">
+    <h2>Technical stack</h2>
+    <ul class="tags">
+      <li>Hermes local AI agent</li>
+      <li>Blender 5.2.2 LTS</li>
+      <li>Python</li>
+      <li>Blender Python API</li>
+      <li>Git</li>
+      <li>GitHub</li>
+      <li>GitHub Pages</li>
+      <li>PNG rendering</li>
+      <li>Visual verification</li>
+    </ul>
+    <p>
+      The project ran locally on Windows. No external services were used beyond GitHub
+      for hosting.
+    </p>
+
+    <h3>Repository contents</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>index.html</code></td><td>This page</td></tr>
+          <tr><td><code>style.css</code></td><td>Styling, dark and light</td></tr>
+          <tr><td><code>generate_floorplan.py</code></td><td>Blender script that builds and renders the plan</td></tr>
+          <tr><td><code>make_diagrams.py</code></td><td>Generates the two diagrams with Pillow</td></tr>
+          <tr><td><code>images/</code></td><td>Final floor plan and the two diagrams</td></tr>
+          <tr><td><code>docs/</code></td><td>Specification and correction log</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Reproducing the render</h3>
+    <pre><code>blender --background --python generate_floorplan.py</code></pre>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Architect Floorplan &mdash; a Hermes + Blender experiment.</p>
+    <p>Illustrative concept, not an architect-certified drawing.</p>
+  </div>
+</footer>
+
+</body>
+</html>
